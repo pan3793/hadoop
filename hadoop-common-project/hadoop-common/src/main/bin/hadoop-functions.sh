@@ -1571,12 +1571,14 @@ function hadoop_finalize_hadoop_opts
 
 ## @description  Finish configuring JPMS that enforced for JDK 17 and higher
 ## @description  prior to executing Java
+## @description  keep this list sync with hadoop-project/pom.xml extraJavaTestArgs
 ## @audience     private
 ## @stability    evolving
 ## @replaceable  yes
 function hadoop_finalize_jpms_opts
 {
     hadoop_add_param HADOOP_OPTS IgnoreUnrecognizedVMOptions "-XX:+IgnoreUnrecognizedVMOptions"
+    hadoop_add_param HADOOP_OPTS open.java.lang "--add-opens=java.base/java.lang=ALL-UNNAMED"
     hadoop_add_param HADOOP_OPTS open.java.util.zip "--add-opens=java.base/java.util.zip=ALL-UNNAMED"
     hadoop_add_param HADOOP_OPTS open.sun.security.util "--add-opens=java.base/sun.security.util=ALL-UNNAMED"
     hadoop_add_param HADOOP_OPTS open.sun.security.x509 "--add-opens=java.base/sun.security.x509=ALL-UNNAMED"
