@@ -1,2 +1,6 @@
 # hadoop-common
 **/org/apache/hadoop/util/TestGSet.java
+**/org/apache/hadoop/util/TestNativeCodeLoader.java
+**/org/apache/hadoop/ipc/TestIPC.java
+**/org/apache/hadoop/security/TestUserGroupInformation.java
+**/org/apache/hadoop/security/TestUGILoginFromKeytab.java
