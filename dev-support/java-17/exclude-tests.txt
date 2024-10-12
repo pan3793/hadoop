@@ -228,3 +228,35 @@
 
 # hadoop-hdfs-rbf
 **/org/apache/hadoop/hdfs/server/federation/router/TestRouterNamenodeHeartbeat.java
+
+# hadoop-yarn-server-timelineservice-documentstore
+**/org/apache/hadoop/yarn/server/timelineservice/documentstore/TestDocumentStoreTimelineWriterImpl.java
+**/org/apache/hadoop/yarn/server/timelineservice/documentstore/TestDocumentStoreCollectionCreator.java
+**/org/apache/hadoop/yarn/server/timelineservice/documentstore/reader/cosmosdb/TestCosmosDBDocumentStoreReader.java
+**/org/apache/hadoop/yarn/server/timelineservice/documentstore/writer/cosmosdb/TestCosmosDBDocumentStoreWriter.java
+**/org/apache/hadoop/yarn/server/timelineservice/documentstore/TestDocumentStoreTimelineReaderImpl.java
+
+# hadoop-yarn-applications-catalog-webapp
+# skip module because it uses com.github.searls:jasmine-maven-plugin:2.1:test and requires Web Browser
+
+# hadoop-streaming
+**/org/apache/hadoop/streaming/TestMultipleArchiveFiles.java
+**/org/apache/hadoop/streaming/TestMultipleCachefiles.java
+**/org/apache/hadoop/streaming/TestSymLink.java
+**/org/apache/hadoop/streaming/TestFileArgs.java
+
+# hadoop-gridmix
+**/org/apache/hadoop/mapred/gridmix/TestGridmixSubmission.java
+**/org/apache/hadoop/mapred/gridmix/TestLoadJob.java
+**/org/apache/hadoop/mapred/gridmix/TestSleepJob.java
+**/org/apache/hadoop/mapred/gridmix/TestDistCacheEmulation.java
+
+# hadoop-extras
+**/org/apache/hadoop/tools/TestDistCh.java
+
+# hadoop-sls
+**/org/apache/hadoop/yarn/sls/TestSLSDagAMSimulator.java
+**/org/apache/hadoop/yarn/sls/TestSLSGenericSynth.java
+**/org/apache/hadoop/yarn/sls/TestSLSStreamAMSynth.java
+**/org/apache/hadoop/yarn/sls/TestSLSRunner.java
+**/org/apache/hadoop/yarn/sls/TestReservationSystemInvariants.java
