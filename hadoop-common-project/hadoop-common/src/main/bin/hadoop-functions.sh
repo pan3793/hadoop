@@ -1582,6 +1582,7 @@ function hadoop_finalize_jpms_opts
     hadoop_add_param HADOOP_OPTS open.java.lang "--add-opens=java.base/java.lang=ALL-UNNAMED"
     hadoop_add_param HADOOP_OPTS open.java.math "--add-opens=java.base/java.math=ALL-UNNAMED"
     hadoop_add_param HADOOP_OPTS open.java.util "--add-opens=java.base/java.util=ALL-UNNAMED"
+    hadoop_add_param HADOOP_OPTS open.java.util.concurrent "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED"
     hadoop_add_param HADOOP_OPTS open.java.util.zip "--add-opens=java.base/java.util.zip=ALL-UNNAMED"
     hadoop_add_param HADOOP_OPTS open.sun.security.util "--add-opens=java.base/sun.security.util=ALL-UNNAMED"
     hadoop_add_param HADOOP_OPTS open.sun.security.x509 "--add-opens=java.base/sun.security.x509=ALL-UNNAMED"
