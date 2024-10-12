@@ -494,6 +494,7 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
+          <argLine>${maven-surefire-plugin.argLine}</argLine>
           <forkCount>0</forkCount>
         </configuration>
       </plugin>
