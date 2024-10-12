@@ -43,16 +43,32 @@ jobs:
         java:
           - 17
         modules:
-          - :hadoop-minikdc,:hadoop-auth,:hadoop-auth-examples,:hadoop-common,:hadoop-nfs,:hadoop-kms,:hadoop-registry
-          - :hadoop-hdfs-client,:hadoop-hdfs,:hadoop-hdfs-native-client,:hadoop-hdfs-httpfs,:hadoop-hdfs-nfs
-          - :hadoop-yarn-api,:hadoop-yarn-common,:hadoop-yarn-server-common,:hadoop-yarn-server-applicationhistoryservice,:hadoop-yarn-server-timelineservice,:hadoop-yarn-server-web-proxy,:hadoop-yarn-server-resourcemanager,:hadoop-yarn-server-nodemanager,:hadoop-yarn-server-tests,:hadoop-yarn-client
-          - :hadoop-mapreduce-client-core,:hadoop-mapreduce-client-common,:hadoop-mapreduce-client-shuffle,:hadoop-mapreduce-client-app,:hadoop-mapreduce-client-hs,:hadoop-mapreduce-client-jobclient,:hadoop-distcp,:hadoop-minicluster,:hadoop-federation-balance,:hadoop-hdfs-rbf
-          - :hadoop-yarn-server-sharedcachemanager,:hadoop-yarn-server-timeline-pluginstorage,:hadoop-yarn-server-timelineservice-hbase-common,:hadoop-yarn-server-timelineservice-hbase-client,:hadoop-yarn-server-timelineservice-hbase-server-2,:hadoop-yarn-server-timelineservice-hbase-tests,:hadoop-yarn-server-router,:hadoop-yarn-server-timelineservice-documentstore,:hadoop-yarn-server-globalpolicygenerator
-          - :hadoop-yarn-applications-distributedshell,:hadoop-yarn-applications-unmanaged-am-launcher,:hadoop-yarn-services-core,:hadoop-yarn-services-api,:hadoop-yarn-applications-catalog-webapp,org.apache.hadoop.applications.mawo:hadoop-yarn-applications-mawo-core,:hadoop-yarn-registry,:hadoop-yarn-csi
-          - :hadoop-mapreduce-client-hs-plugins,:hadoop-mapreduce-client-nativetask,:hadoop-mapreduce-client-uploader,:hadoop-mapreduce-examples,:hadoop-streaming,:hadoop-client
-          - :hadoop-dynamometer-workload,:hadoop-dynamometer-infra,:hadoop-dynamometer-blockgen,:hadoop-dynamometer-dist,:hadoop-archives,:hadoop-archive-logs,:hadoop-rumen,:hadoop-gridmix,:hadoop-datajoin,:hadoop-extras
-          - :hadoop-aws,:hadoop-kafka,:hadoop-azure,:hadoop-aliyun,:hadoop-sls,:hadoop-resourceestimator,:hadoop-azure-datalake,:hadoop-fs2img,:hadoop-tools-dist,:hadoop-openstack,:hadoop-benchmark,:hadoop-compat-bench
-          - :hadoop-client-api,:hadoop-client-runtime,:hadoop-client-minicluster,:hadoop-client-integration-tests,:hadoop-dist,:hadoop-cos,:hadoop-huaweicloud,:hadoop-cloud-storage
+          - -pl :hadoop-hdfs
+          - -pl :hadoop-yarn-server-resourcemanager
+          - -pl :hadoop-mapreduce-client-jobclient
+          - -pl :hadoop-common,:hadoop-yarn-server-nodemanager,:hadoop-yarn-client,:hadoop-distcp
+          - -pl :hadoop-hdfs-rbf,:hadoop-yarn-applications-distributedshell,:hadoop-yarn-services-core
+          - -pl :hadoop-minikdc,:hadoop-auth,:hadoop-auth-examples,:hadoop-nfs,:hadoop-kms,:hadoop-registry
+            -pl :hadoop-hdfs-client,:hadoop-hdfs-native-client,:hadoop-hdfs-httpfs,:hadoop-hdfs-nfs,:hadoop-yarn-api
+            -pl :hadoop-yarn-common,:hadoop-yarn-server-common,:hadoop-yarn-server-applicationhistoryservice
+            -pl :hadoop-yarn-server-timelineservice,:hadoop-yarn-server-web-proxy,:hadoop-yarn-server-tests
+            -pl :hadoop-mapreduce-client-core,:hadoop-mapreduce-client-common,:hadoop-mapreduce-client-shuffle
+            -pl :hadoop-mapreduce-client-app,:hadoop-mapreduce-client-hs,:hadoop-minicluster,:hadoop-federation-balance
+            -pl :hadoop-yarn-server-sharedcachemanager,:hadoop-yarn-server-timeline-pluginstorage
+            -pl :hadoop-yarn-server-timelineservice-hbase-common,:hadoop-yarn-server-timelineservice-hbase-client
+            -pl :hadoop-yarn-server-timelineservice-hbase-server-2,:hadoop-yarn-server-timelineservice-hbase-tests
+            -pl :hadoop-yarn-server-router,:hadoop-yarn-server-timelineservice-documentstore
+            -pl :hadoop-yarn-server-globalpolicygenerator,:hadoop-yarn-applications-unmanaged-am-launcher
+            -pl :hadoop-yarn-services-api,:hadoop-yarn-applications-catalog-webapp,:hadoop-yarn-registry
+            -pl org.apache.hadoop.applications.mawo:hadoop-yarn-applications-mawo-core,:hadoop-yarn-csi
+            -pl :hadoop-mapreduce-client-hs-plugins,:hadoop-mapreduce-client-nativetask
+            -pl :hadoop-mapreduce-client-uploader,:hadoop-mapreduce-examples,:hadoop-streaming,:hadoop-client
+            -pl :hadoop-dynamometer-workload,:hadoop-dynamometer-infra,:hadoop-dynamometer-blockgen
+            -pl :hadoop-dynamometer-dist,:hadoop-archives,:hadoop-archive-logs,:hadoop-rumen,:hadoop-gridmix
+            -pl :hadoop-datajoin,:hadoop-extras,:hadoop-aws,:hadoop-kafka,:hadoop-azure,:hadoop-aliyun,:hadoop-sls
+            -pl :hadoop-resourceestimator,:hadoop-azure-datalake,:hadoop-fs2img,:hadoop-tools-dist,:hadoop-benchmark
+            -pl :hadoop-compat-bench,:hadoop-client-api,:hadoop-client-runtime,:hadoop-client-minicluster
+            -pl :hadoop-client-integration-tests,:hadoop-dist,:hadoop-cos,:hadoop-huaweicloud,:hadoop-cloud-storage
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -64,9 +80,9 @@ jobs:
           cache: 'maven'
           check-latest: false
       - name: Build
-        run: mvn -pl ${{ matrix.modules }} clean install -am -DskipTests
+        run: mvn ${{ matrix.modules }} clean install -am -DskipTests
       - name: Test
-        run: mvn -pl ${{ matrix.modules }} test --fail-at-end -Dsurefire.excludesFile=$PWD/dev-support/java-17/exclude-tests.txt
+        run: mvn ${{ matrix.modules }} test --fail-at-end -Dsurefire.excludesFile=$PWD/dev-support/java-17/exclude-tests.txt
       - name: Upload test logs
         if: failure()
         uses: actions/upload-artifact@v3
