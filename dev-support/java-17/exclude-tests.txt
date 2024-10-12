@@ -5,5 +5,24 @@
 **/org/apache/hadoop/security/TestUserGroupInformation.java
 **/org/apache/hadoop/security/TestUGILoginFromKeytab.java
 
+# hadoop-hdfs
+**/org/apache/hadoop/fs/TestHdfsNativeCodeLoader.java
+**/org/apache/hadoop/hdfs/TestDFSUtil.java
+**/org/apache/hadoop/hdfs/TestStoragePolicyPermissionSettings.java
+**/org/apache/hadoop/hdfs/server/blockmanagement/TestBlockReportLease.java
+**/org/apache/hadoop/hdfs/server/blockmanagement/TestBlockTokenWithShortCircuitRead.java
+**/org/apache/hadoop/hdfs/server/namenode/TestCacheDirectivesWithViewDFS.java
+**/org/apache/hadoop/hdfs/server/namenode/TestCacheDirectives.java
+**/org/apache/hadoop/hdfs/server/namenode/ha/TestDFSUpgradeWithHA.java
+**/org/apache/hadoop/hdfs/server/namenode/ha/TestHAStateTransitions.java
+**/org/apache/hadoop/hdfs/server/namenode/ha/TestObserverReadProxyProvider.java
+**/org/apache/hadoop/hdfs/server/balancer/TestBalancerWithHANameNodes.java
+**/org/apache/hadoop/hdfs/server/datanode/fsdataset/impl/TestFsVolumeList.java
+**/org/apache/hadoop/hdfs/server/datanode/TestDirectoryScanner.java
+**/org/apache/hadoop/hdfs/TestSetTimes.java
+**/org/apache/hadoop/hdfs/web/TestWebHdfsTimeouts.java
+**/org/apache/hadoop/hdfs/web/TestFSMainOperationsWebHdfs.java
+**/org/apache/hadoop/hdfs/TestFileCreation.java
+
 # hadoop-hdfs-httpfs
-org.apache.hadoop.fs.http.client.TestHttpFSWithHttpFSFileSystem
+**/org/apache/hadoop/fs/http/client/TestHttpFSWithHttpFSFileSystem.java
