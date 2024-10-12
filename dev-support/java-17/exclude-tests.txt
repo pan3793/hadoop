@@ -26,3 +26,6 @@
 
 # hadoop-hdfs-httpfs
 **/org/apache/hadoop/fs/http/client/TestHttpFSWithHttpFSFileSystem.java
+
+# hadoop-yarn-server-common
+**/org/apache/hadoop/yarn/server/federation/store/sql/TestFederationSQLServerScriptAccuracy.java
