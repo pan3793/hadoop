@@ -1,0 +1,312 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: Build and Test
+
+on:
+  workflow_call:
+    inputs:
+      java:
+        required: false
+        type: string
+        default: 17
+      branch:
+        required: false
+        type: string
+        description: Branch to run the build against
+        default: trunk
+      os:
+        required: false
+        type: string
+        description: Operating system to run the build on
+        default: ubuntu_24
+      jobs:
+        required: true
+        type: string
+        description: Jobs to run, and should be in JSON Array format.
+        default: '[]'
+
+concurrency:
+  group: test-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  MAVEN_ARGS:
+    --batch-mode
+    --no-transfer-progress
+    -Pyarn-ui
+    -Pnative
+    -Drequire.test.libhadoop
+    -Drequire.fuse
+    -Drequire.openssl
+    -Drequire.snappy
+    -Drequire.valgrind
+    -Dmaven.test.failure.ignore=false
+
+jobs:
+  precondition:
+    name: Preparation
+    runs-on: ubuntu-24.04
+    outputs:
+      infra_image_url: ${{ steps.variables.outputs.infra_image_url }}
+    steps:
+      - name: Set up Outputs
+        id: variables
+        run: |
+          echo "infra_image_url=ghcr.io/pan3793/hadoop/gha-${{ inputs.os }}:${{ inputs.branch }}" >> $GITHUB_OUTPUT
+  infra-image:
+    name: "Base image build"
+    runs-on: ubuntu-24.04
+    needs: [ precondition ]
+    permissions:
+      packages: write
+    outputs:
+      uid: ${{ steps.variables.outputs.uid }}
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout Hadoop repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          repository: apache/hadoop
+          ref: ${{ inputs.branch }}
+      - name: Sync the current branch with the latest in Apache Hadoop
+        if: github.repository != 'apache/hadoop'
+        run: |
+          echo "APACHE_HADOOP_REF=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          git fetch https://github.com/$GITHUB_REPOSITORY.git ${GITHUB_REF#refs/heads/}
+          git -c user.name='Apache Hadoop GitHub Actions Account' -c user.email='hadoop.gha@github.com' merge --no-commit --progress --squash FETCH_HEAD
+          git -c user.name='Apache Hadoop GitHub Actions Account' -c user.email='hadoop.gha@github.com' commit -m "Merged commit" --allow-empty
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+      - name: Build and push ${{ inputs.os }} base infra image for ${{ inputs.branch }}
+        id: docker_build_base
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        with:
+          context: ./dev-support/docker/
+          file: ./dev-support/docker/Dockerfile_${{ inputs.os }}
+          push: true
+          tags: ${{ needs.precondition.outputs.infra_image_url }}-base
+          # Use the infra image cache to speed up
+          cache-from: type=registry,ref=ghcr.io/pan3793/hadoop/gha-image-cache-${{ inputs.os }}:${{ inputs.branch }}
+      - name: User-specific Dockerfile
+        run: |
+          USER_ID=$(id -u "${USER}")
+          GROUP_ID=$(id -g "${USER}")
+          cat > /tmp/Dockerfile.gha <<UserSpecificDocker
+          FROM ${{ needs.precondition.outputs.infra_image_url }}-base
+          RUN rm -f /var/log/faillog /var/log/lastlog
+          RUN groupadd --non-unique -g ${GROUP_ID} ${USER}
+          RUN useradd -g ${GROUP_ID} -u ${USER_ID} -k /root -m ${USER}
+          RUN echo "${USER} ALL=NOPASSWD: ALL" > "/etc/sudoers.d/hadoop-build-${USER_ID}"
+          UserSpecificDocker
+      - name: Build and push ${{ inputs.os }} infra image for ${{ inputs.branch }}
+        id: docker_build_gha
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        with:
+          context: ./dev-support/docker/
+          file: /tmp/Dockerfile.gha
+          push: true
+          tags: ${{ needs.precondition.outputs.infra_image_url }}
+      - name: Set up Outputs
+        id: variables
+        run: |
+          echo "uid=$(id -u "${USER}")" >> $GITHUB_OUTPUT
+  build-only:
+    if: (!cancelled()) && contains(fromJSON(inputs.jobs), 'build-only')
+    name: Build only
+    runs-on: ubuntu-24.04
+    needs: [ precondition, infra-image ]
+    container:
+      image: ${{ needs.precondition.outputs.infra_image_url }}
+      options: --user ${{ needs.infra-image.outputs.uid }}
+    steps:
+      - name: Checkout Hadoop repository
+        uses: actions/checkout@v6
+        # In order to fetch changed files
+        with:
+          fetch-depth: 0
+          repository: apache/hadoop
+          ref: ${{ inputs.branch }}
+      - name: Sync the current branch with the latest in Apache Hadoop
+        if: github.repository != 'apache/hadoop'
+        run: |
+          echo "APACHE_HADOOP_REF=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          git fetch https://github.com/$GITHUB_REPOSITORY.git ${GITHUB_REF#refs/heads/}
+          git -c user.name='Apache Hadoop GitHub Actions Account' -c user.email='hadoop.gha@github.com' merge --no-commit --progress --squash FETCH_HEAD
+          git -c user.name='Apache Hadoop GitHub Actions Account' -c user.email='hadoop.gha@github.com' commit -m "Merged commit" --allow-empty
+      - name: Setup JDK ${{ inputs.java }}
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: ${{ inputs.java }}
+          cache: 'maven'
+          check-latest: false
+      - name: Build
+        shell: bash
+        run: ./mvnw $MAVEN_ARGS clean install -DskipTests
+
+  build-and-test:
+    if: (!cancelled()) && contains(fromJSON(inputs.jobs), 'build-and-test')
+    name: Test ${{ matrix.comment }}
+    runs-on: ubuntu-24.04
+    needs: [ precondition, infra-image ]
+    container:
+      image: ${{ needs.precondition.outputs.infra_image_url }}
+      options: --user ${{ needs.infra-image.outputs.uid }}
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include:
+          - comment: hdfs
+            modules:
+              -pl :hadoop-hdfs
+          - comment: yarn-server-rm
+            modules:
+              -pl :hadoop-yarn-server-resourcemanager
+          - comment: mr
+            modules:
+              -pl :hadoop-mapreduce-client-core
+              -pl :hadoop-mapreduce-client-common
+              -pl :hadoop-mapreduce-client-shuffle
+              -pl :hadoop-mapreduce-client-jobclient
+              -pl :hadoop-mapreduce-client-app
+              -pl :hadoop-mapreduce-client-hs
+              -pl :hadoop-mapreduce-client-hs-plugins
+              -pl :hadoop-mapreduce-client-nativetask
+              -pl :hadoop-mapreduce-client-uploader
+              -pl :hadoop-mapreduce-examples
+          - comment: common
+            modules:
+              -pl :hadoop-common,
+              -pl :hadoop-yarn-server-nodemanager
+              -pl :hadoop-yarn-client
+              -pl :hadoop-distcp
+          - comment: hdfs-rbf
+            modules:
+              -pl :hadoop-hdfs-rbf,
+              -pl :hadoop-yarn-applications-distributedshell
+              -pl :hadoop-yarn-services-core
+          - comment: other
+            modules:
+              -pl :hadoop-minikdc
+              -pl :hadoop-auth
+              -pl :hadoop-auth-examples
+              -pl :hadoop-nfs
+              -pl :hadoop-kms
+              -pl :hadoop-registry
+              -pl :hadoop-hdfs-client
+              -pl :hadoop-hdfs-native-client
+              -pl :hadoop-hdfs-httpfs
+              -pl :hadoop-hdfs-nfs
+              -pl :hadoop-yarn-api
+              -pl :hadoop-yarn-common
+              -pl :hadoop-yarn-server-common
+              -pl :hadoop-yarn-server-applicationhistoryservice
+              -pl :hadoop-yarn-server-timelineservice
+              -pl :hadoop-yarn-server-web-proxy
+              -pl :hadoop-yarn-server-tests
+              -pl :hadoop-yarn-server-sharedcachemanager
+              -pl :hadoop-yarn-server-timeline-pluginstorage
+              -pl :hadoop-yarn-server-timelineservice-hbase-common
+              -pl :hadoop-yarn-server-timelineservice-hbase-client
+              -pl :hadoop-yarn-server-timelineservice-hbase-server-2
+              -pl :hadoop-yarn-server-timelineservice-hbase-tests
+              -pl :hadoop-yarn-server-router
+              -pl :hadoop-yarn-server-timelineservice-documentstore
+              -pl :hadoop-yarn-server-globalpolicygenerator
+              -pl :hadoop-yarn-applications-unmanaged-am-launcher
+              -pl :hadoop-yarn-services-api
+              -pl :hadoop-yarn-applications-catalog-webapp
+              -pl :hadoop-yarn-registry
+              -pl org.apache.hadoop.applications.mawo:hadoop-yarn-applications-mawo-core
+              -pl :hadoop-yarn-csi
+              -pl :hadoop-minicluster
+              -pl :hadoop-federation-balance
+              -pl :hadoop-streaming
+              -pl :hadoop-client
+              -pl :hadoop-dynamometer-workload
+              -pl :hadoop-dynamometer-infra
+              -pl :hadoop-dynamometer-blockgen
+              -pl :hadoop-dynamometer-dist
+              -pl :hadoop-archives
+              -pl :hadoop-archive-logs
+              -pl :hadoop-rumen
+              -pl :hadoop-gridmix
+              -pl :hadoop-datajoin
+              -pl :hadoop-extras
+              -pl :hadoop-aws
+              -pl :hadoop-kafka
+              -pl :hadoop-aliyun
+              -pl :hadoop-sls
+              -pl :hadoop-resourceestimator
+              -pl :hadoop-azure
+              -pl :hadoop-azure-datalake
+              -pl :hadoop-fs2img
+              -pl :hadoop-tools-dist
+              -pl :hadoop-benchmark
+              -pl :hadoop-compat-bench
+              -pl :hadoop-client-api
+              -pl :hadoop-client-runtime
+              -pl :hadoop-client-minicluster
+              -pl :hadoop-client-integration-tests
+              -pl :hadoop-cos
+              -pl :hadoop-huaweicloud
+              -pl :hadoop-cloud-storage
+              -pl :hadoop-dist
+    steps:
+      - name: Checkout Hadoop repository
+        uses: actions/checkout@v6
+        # In order to fetch changed files
+        with:
+          fetch-depth: 0
+          repository: apache/hadoop
+          ref: ${{ inputs.branch }}
+      - name: Sync the current branch with the latest in Apache Hadoop
+        if: github.repository != 'apache/hadoop'
+        run: |
+          echo "APACHE_HADOOP_REF=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          git fetch https://github.com/$GITHUB_REPOSITORY.git ${GITHUB_REF#refs/heads/}
+          git -c user.name='Apache Hadoop GitHub Actions Account' -c user.email='hadoop.gha@github.com' merge --no-commit --progress --squash FETCH_HEAD
+          git -c user.name='Apache Hadoop GitHub Actions Account' -c user.email='hadoop.gha@github.com' commit -m "Merged commit" --allow-empty
+      - name: Setup JDK ${{ inputs.java }}
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: ${{ inputs.java }}
+          cache: 'maven'
+          check-latest: false
+      - name: Build
+        shell: bash
+        run: ./mvnw $MAVEN_ARGS ${{ matrix.modules }} clean install -am -DskipTests
+      - name: Test
+        shell: bash
+        run: ./mvnw $MAVEN_ARGS ${{ matrix.modules }} test -Dsurefire.excludesFile=$PWD/dev-support/java-17/exclude-tests.txt
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-logs-${{ matrix.comment }}
+          path: |
+            **/target/*.log
+
