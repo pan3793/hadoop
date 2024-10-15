@@ -82,7 +82,7 @@ jobs:
       - name: Build
         run: mvn ${{ matrix.modules }} clean install -am -DskipTests
       - name: Test
-        run: mvn ${{ matrix.modules }} test --fail-at-end -Dsurefire.excludesFile=$PWD/dev-support/java-17/exclude-tests.txt
+        run: mvn ${{ matrix.modules }} test -Dsurefire.excludesFile=$PWD/dev-support/java-17/exclude-tests.txt
       - name: Upload test logs
         if: failure()
         uses: actions/upload-artifact@v3
