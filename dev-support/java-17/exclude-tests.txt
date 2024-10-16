@@ -225,6 +225,7 @@
 **/org/apache/hadoop/mapred/TestClusterMRNotification.java
 **/org/apache/hadoop/mapred/TestJobCleanup.java
 **/org/apache/hadoop/mapred/TestReduceFetch.java
+**/org/apache/hadoop/mapred/pipes/TestPipeApplication.java
 **/org/apache/hadoop/mapreduce/TestMRJobClient.java
 **/org/apache/hadoop/mapreduce/lib/output/TestJobOutputCommitter.java
 **/org/apache/hadoop/mapreduce/TestChild.java
