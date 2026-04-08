@@ -167,7 +167,7 @@ jobs:
 
   test:
     name: Test (Java ${{ inputs.java }}) ${{ matrix.comment }}
-    if: (!cancelled()) && contains(fromJSON(inputs.jobs), 'build-and-test')
+    if: (!cancelled()) && contains(fromJSON(inputs.jobs), 'test')
     runs-on: ubuntu-24.04
     needs: [ precondition, infra-image ]
     container:
