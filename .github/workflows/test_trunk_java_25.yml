@@ -17,7 +17,7 @@
 # under the License.
 #
 
-name: "Build and test (trunk, Java 25)"
+name: "Test (trunk, Java 25)"
 
 on:
   push:
@@ -39,4 +39,4 @@ jobs:
       java: 25
       branch: trunk
       os: ubuntu_24
-      jobs: '[ "build-and-test" ]'
+      jobs: '[ "test" ]'

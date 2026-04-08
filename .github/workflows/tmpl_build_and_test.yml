@@ -59,7 +59,7 @@ env:
 
 jobs:
   precondition:
-    name: preparation
+    name: Preparation
     runs-on: ubuntu-24.04
     outputs:
       infra_image_url: ${{ steps.variables.outputs.infra_image_url }}
@@ -69,7 +69,7 @@ jobs:
         run: |
           echo "infra_image_url=ghcr.io/pan3793/hadoop/gha-${{ inputs.os }}:${{ inputs.branch }}" >> $GITHUB_OUTPUT
   infra-image:
-    name: infra-image-${{ inputs.os }}-${{ inputs.branch }}
+    name: Infra Image ${{ inputs.os }}-${{ inputs.branch }}
     runs-on: ubuntu-24.04
     needs: [ precondition ]
     permissions:
@@ -132,7 +132,7 @@ jobs:
         run: |
           echo "uid=$(id -u "${USER}")" >> $GITHUB_OUTPUT
   build-only:
-    name: build-only-java-${{ inputs.java }}-${{ inputs.os }}-${{ inputs.branch }}
+    name: Build Only (Java ${{ inputs.java }}) ${{ inputs.os }}-${{ inputs.branch }}
     if: (!cancelled()) && contains(fromJSON(inputs.jobs), 'build-only')
     runs-on: ubuntu-24.04
     needs: [ precondition, infra-image ]
@@ -165,7 +165,7 @@ jobs:
         shell: bash
         run: ./mvnw $MAVEN_ARGS clean install -DskipTests
 
-  build-and-test:
+  test:
     name: Test (Java ${{ inputs.java }}) ${{ matrix.comment }}
     if: (!cancelled()) && contains(fromJSON(inputs.jobs), 'build-and-test')
     runs-on: ubuntu-24.04
