@@ -79,25 +79,15 @@ jobs:
     outputs:
       uid: ${{ steps.variables.outputs.uid }}
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Login to GitHub Container Registry
         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Checkout Hadoop repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          repository: apache/hadoop
-          ref: ${{ inputs.branch }}
-      - name: Sync the current branch with the latest in Apache Hadoop
-        if: github.repository != 'apache/hadoop'
-        run: |
-          echo "APACHE_HADOOP_REF=$(git rev-parse HEAD)" >> $GITHUB_ENV
-          git fetch https://github.com/$GITHUB_REPOSITORY.git ${GITHUB_REF#refs/heads/}
-          git -c user.name='Apache Hadoop GitHub Actions Account' -c user.email='hadoop.gha@github.com' merge --no-commit --progress --squash FETCH_HEAD
-          git -c user.name='Apache Hadoop GitHub Actions Account' -c user.email='hadoop.gha@github.com' commit -m "Merged commit" --allow-empty
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
       - name: Build and push ${{ inputs.os }} base infra image for ${{ inputs.branch }}
@@ -140,19 +130,9 @@ jobs:
       image: ${{ needs.precondition.outputs.infra_image_url }}
       options: --user ${{ needs.infra-image.outputs.uid }}
     steps:
-      - name: Checkout Hadoop repository
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          repository: apache/hadoop
-          ref: ${{ inputs.branch }}
-      - name: Sync the current branch with the latest in Apache Hadoop
-        if: github.repository != 'apache/hadoop'
-        run: |
-          echo "APACHE_HADOOP_REF=$(git rev-parse HEAD)" >> $GITHUB_ENV
-          git fetch https://github.com/$GITHUB_REPOSITORY.git ${GITHUB_REF#refs/heads/}
-          git -c user.name='Apache Hadoop GitHub Actions Account' -c user.email='hadoop.gha@github.com' merge --no-commit --progress --squash FETCH_HEAD
-          git -c user.name='Apache Hadoop GitHub Actions Account' -c user.email='hadoop.gha@github.com' commit -m "Merged commit" --allow-empty
       - name: Setup JDK ${{ inputs.java }}
         uses: actions/setup-java@v5
         with:
