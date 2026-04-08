@@ -36,7 +36,7 @@ the platforms. We need a system to track a dependency - for a package - for a pl
 
 `pkg-resolver/platforms.json` contains a list of the supported platforms for dependency management.
 
-## Package dependencies
+## Package dependencies1
 
 `pkg-resolver/packages.json` maps a dependency to a given platform. Here's the schema of this JSON.
 
