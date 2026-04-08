@@ -28,6 +28,14 @@ on:
     branches:
       - trunk
       - branch-*
+    paths:
+      - '**/*.c'
+      - '**/*.cc'
+      - '**/*.cpp'
+      - '**/*.h'
+      - '**/*.hpp'
+      - '**/CMakeLists.txt'
+      - 'dev-support/docker/**'
 
 jobs:
   call-build-and-test:
