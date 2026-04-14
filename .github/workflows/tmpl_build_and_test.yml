@@ -43,7 +43,14 @@ on:
         default: '[ "build-only" ]'
 
 concurrency:
-  group: build-and-test-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: >-
+    build-and-test
+    ${{ github.workflow }}
+    ${{ github.repository == 'apache/hadoop' && github.run_id || github.ref }}
+    ${{ inputs.java }}
+    ${{ inputs.branch }}
+    ${{ inputs.os }}
+    ${{ inputs.jobs }}
   cancel-in-progress: true
 
 env:
