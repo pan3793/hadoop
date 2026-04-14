@@ -76,7 +76,7 @@ jobs:
       - name: Set up Outputs
         id: variables
         run: |
-          echo "infra_image_url=ghcr.io/${{ github.repository }}/hadoop/gha-${{ inputs.os }}:${{ inputs.branch }}-${{ github.run_id }}" >> $GITHUB_OUTPUT
+          echo "infra_image_url=ghcr.io/${{ github.repository }}/gha-${{ inputs.os }}:${{ inputs.branch }}-${{ github.run_id }}" >> $GITHUB_OUTPUT
   infra-image:
     name: Infra Image ${{ inputs.os }}-${{ inputs.branch }}
     runs-on: ubuntu-24.04
