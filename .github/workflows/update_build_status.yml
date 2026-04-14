@@ -21,7 +21,7 @@ name: Update Build Status
 
 on:
   schedule:
-  - cron: "*/15 * * * *"
+  - cron: "*/5 * * * *" # TODO change back to 15min
 
 jobs:
   update:
