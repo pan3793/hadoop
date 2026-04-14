@@ -17,26 +17,36 @@
 # under the License.
 #
 
-name: "Build (trunk, Java 17, Ubuntu 24)"
+name: "Build and Test"
 
 on:
   push:
     branches:
-      - trunk
-      - branch-*
-  pull_request:
-    branches:
-      - trunk
-      - branch-*
+      - "**"
 
 jobs:
-  call-build-and-test:
+  default:
+    permissions:
+      packages: write
+    name: Run
+    uses: ./.github/workflows/tmpl_build_and_test.yml
+
+  rockylinux-8-java21-build-only:
     permissions:
       packages: write
     name: Run
     uses: ./.github/workflows/tmpl_build_and_test.yml
     with:
-      java: 17
-      branch: trunk
-      os: ubuntu_24
+      java: 21
+      os: rockylinux_8
+      jobs: '[ "build-only" ]'
+
+  debian-13-java25-build-only:
+    permissions:
+      packages: write
+    name: Run
+    uses: ./.github/workflows/tmpl_build_and_test.yml
+    with:
+      java: 25
+      os: debian_13
       jobs: '[ "build-only" ]'
