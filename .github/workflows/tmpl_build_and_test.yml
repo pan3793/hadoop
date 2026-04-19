@@ -71,14 +71,16 @@ jobs:
     name: Preparation
     runs-on: ubuntu-24.04
     outputs:
-      infra_image_url: ${{ steps.variables.outputs.infra_image_url }}
+      build_image_url: ${{ steps.variables.outputs.build_image_url }}
     steps:
       - name: Set up Outputs
         id: variables
         run: |
-          echo "infra_image_url=ghcr.io/${{ github.repository }}/gha-${{ inputs.os }}:${{ inputs.branch }}-${{ github.run_id }}" >> $GITHUB_OUTPUT
-  infra-image:
-    name: Infra Image ${{ inputs.os }}-${{ inputs.branch }}
+          # Convert to lowercase to meet Docker repo name requirement
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "build_image_url=ghcr.io/${REPO_OWNER}/gha-build-${{ inputs.os }}:${{ inputs.branch }}-${{ github.run_id }}" >> $GITHUB_OUTPUT
+  build-image:
+    name: Build Image ${{ inputs.os }}-${{ inputs.branch }}
     runs-on: ubuntu-24.04
     needs: [ precondition ]
     permissions:
@@ -97,33 +99,33 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
-      - name: Build and push ${{ inputs.os }} base infra image for ${{ inputs.branch }}
+      - name: Build and push ${{ inputs.os }} base build image for ${{ inputs.branch }}
         id: docker_build_base
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: ./dev-support/docker/
           file: ./dev-support/docker/Dockerfile_${{ inputs.os }}
           push: true
-          tags: ${{ needs.precondition.outputs.infra_image_url }}-base
+          tags: ${{ needs.precondition.outputs.build_image_url }}-base
       - name: User-specific Dockerfile
         run: |
           USER_ID=$(id -u "${USER}")
           GROUP_ID=$(id -g "${USER}")
           cat > /tmp/Dockerfile.gha <<UserSpecificDocker
-          FROM ${{ needs.precondition.outputs.infra_image_url }}-base
+          FROM ${{ needs.precondition.outputs.build_image_url }}-base
           RUN rm -f /var/log/faillog /var/log/lastlog
           RUN groupadd --non-unique -g ${GROUP_ID} ${USER}
           RUN useradd -g ${GROUP_ID} -u ${USER_ID} -k /root -m ${USER}
           RUN echo "${USER} ALL=NOPASSWD: ALL" > "/etc/sudoers.d/hadoop-build-${USER_ID}"
           UserSpecificDocker
-      - name: Build and push ${{ inputs.os }} infra image for ${{ inputs.branch }}
+      - name: Build and push ${{ inputs.os }} build image for ${{ inputs.branch }}
         id: docker_build_gha
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: ./dev-support/docker/
           file: /tmp/Dockerfile.gha
           push: true
-          tags: ${{ needs.precondition.outputs.infra_image_url }}
+          tags: ${{ needs.precondition.outputs.build_image_url }}
       - name: Set up Outputs
         id: variables
         run: |
@@ -132,10 +134,10 @@ jobs:
     name: Build Only (Java ${{ inputs.java }}) ${{ inputs.os }}-${{ inputs.branch }}
     if: (!cancelled()) && contains(fromJSON(inputs.jobs), 'build-only')
     runs-on: ubuntu-24.04
-    needs: [ precondition, infra-image ]
+    needs: [ precondition, build-image ]
     container:
-      image: ${{ needs.precondition.outputs.infra_image_url }}
-      options: --user ${{ needs.infra-image.outputs.uid }}
+      image: ${{ needs.precondition.outputs.build_image_url }}
+      options: --user ${{ needs.build-image.outputs.uid }}
     steps:
       - uses: actions/checkout@v6
         with:
