@@ -42,6 +42,9 @@ on:
           Candidates: "build-only".
         default: '[ "build-only" ]'
 
+permissions:
+  packages: read
+
 concurrency:
   group: >-
     build-and-test
