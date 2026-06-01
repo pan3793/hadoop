@@ -32,9 +32,31 @@ import org.apache.hadoop.security.authentication.util.SubjectUtil;
  * is enabled, while in Java 24+ it is never propagated.
  * <p>
  * Hadoop security heavily relies on the original behavior, as Subject is at the
- * core of JAAS. This class wraps thread. It overrides start() and saves the
- * Subject of the current thread, and wraps the payload in a
+ * core of JAAS. This class wraps thread. It captures the Subject of the current
+ * thread at construction time, and wraps the payload in a
  * Subject.doAs()/callAs() call to restore it in the newly created Thread.
+ * <p>
+ * NOTE: The Subject is captured in the constructor (which runs on the creator's
+ * thread) and stored in a {@code final} field. The capture used to be done in
+ * {@code start()} instead, but that turned out to be unreliable when the
+ * thread is started via a {@link java.util.concurrent.ThreadPoolExecutor} on
+ * JDK 22+: the {@code startSubject} field was observed to be {@code null}
+ * inside {@code run()} on the new thread even though {@code SubjectUtil.current()}
+ * returned a non-{@code null} value on the creator's thread immediately before
+ * {@code pool.execute(...)}. The most likely explanation is that since JDK 21
+ * {@code ThreadPoolExecutor.addWorker} dispatches the start through
+ * {@code jdk.internal.vm.ThreadContainer.start(Thread)}, which apparently
+ * unbinds the calling thread's {@code ScopedValue<Subject>} scope by the time
+ * the JVM dispatches the virtual call to our overridden {@code final start()}.
+ * <p>
+ * Capturing in the constructor and using a {@code final} field gives us
+ * bullet-proof initialization-safety semantics regardless of any peculiarities
+ * of {@code Thread.start()}. It also restores the pre-JDK22 capture semantics
+ * exactly: pre-JDK22 the Subject was propagated to a new thread via
+ * {@code InheritableThreadLocal}, which is snapshotted at {@code Thread.<init>}
+ * (i.e. on the constructing thread), so a thread constructed inside
+ * {@code Subject.doAs(A, ...)} and started later (possibly from a different
+ * thread or scope) has always observed subject A inside {@code run()}.
  * <p>
  * When specifying a Runnable, this class is used in exactly the same way as
  * Thread.
@@ -46,9 +68,19 @@ import org.apache.hadoop.security.authentication.util.SubjectUtil;
  */
 public class SubjectInheritingThread extends Thread {
 
-  private Subject startSubject;
+  private final Subject startSubject = captureStartSubject();
   // {@link Thread#target} is private, so we need our own
   private Runnable hadoopTarget;
+
+  /**
+   * Capture the calling thread's current Subject at construction time, or
+   * {@code null} on JDK versions where the JVM still propagates the Subject
+   * to new threads automatically (in which case the wrapping in {@link #run()}
+   * is a no-op as well).
+   */
+  private static Subject captureStartSubject() {
+    return SubjectUtil.THREAD_INHERITS_SUBJECT ? null : SubjectUtil.current();
+  }
 
   /**
    * Behaves similarly to {@link Thread#Thread()} constructor, but the code to run
@@ -164,19 +196,6 @@ public class SubjectInheritingThread extends Thread {
   public SubjectInheritingThread(ThreadGroup group, Runnable target, String name) {
     super(group, name);
     this.hadoopTarget = target;
-  }
-
-  /**
-   * Behaves similarly to pre-Java 22 {@link Thread#start()}. It saves the current
-   * Subject before starting the new thread, which is then used as the Subject for
-   * the Runnable or the overridden work() method.
-   */
-  @Override
-  public final void start() {
-    if (!SubjectUtil.THREAD_INHERITS_SUBJECT) {
-      startSubject = SubjectUtil.current();
-    }
-    super.start();
   }
 
   /**

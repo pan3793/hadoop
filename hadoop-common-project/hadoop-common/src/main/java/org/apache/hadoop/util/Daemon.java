@@ -41,15 +41,10 @@ import org.apache.hadoop.security.authentication.util.SubjectUtil;
 @InterfaceStability.Unstable
 public class Daemon extends Thread {
 
-  Subject startSubject;
-
-  @Override
-  public final void start() {
-    if (!SubjectUtil.THREAD_INHERITS_SUBJECT) {
-      startSubject = SubjectUtil.current();
-    }
-    super.start();
-  }
+  // Captured at construction time, in a final field, for the same reasons explained on
+  // SubjectInheritingThread: capturing in start() is unreliable when the thread is started
+  // via a ThreadPoolExecutor on JDK 22+.
+  final Subject startSubject = SubjectUtil.THREAD_INHERITS_SUBJECT ? null : SubjectUtil.current();
 
   /**
    * Override this instead of run()
